@@ -1,246 +1,88 @@
 <html lang="en">
 
 <head>
-    <title>Создание редиректа</title>
+    <title>Переработка вторсырья</title>
     <meta charset="UTF-8">
 </head>
 
 <body>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
       integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-<script src="https://canvasjs.com/assets/script/jquery.canvasjs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
 
-<script>
-    function getFormDataInJson(dataList) {
-        let map = {};
-        $.map(dataList, function (n) {
-            map[n['name']] = n['value'];
-        });
+<nav class="navbar navbar-light bg-light">
+    <a class="navbar-brand" href="#">
+        <img src="./dc_logo_vertical.svg" width="128" height="60" alt="">
+        Delivery Club Eco
+    </a>
+</nav>
 
-        return map;
-    }
-
-    function convertToChartData(objectList, from, to) {
-        $.map(objectList, function (obj) {
-            obj[to] = obj[from]
-        });
-        return objectList;
-    }
-
-    function alert(selector, message) {
-        let alertBlock = `<div class="col alert alert-danger">${message}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>`
-
-        let element = $(selector)[0];
-        element.innerHTML = alertBlock;
-        $(selector).show();
-    }
-
-    $(document).ready(function () {
-        let $stats = $("#stats");
-        let $main = $("#main");
-        let $mainBlock = $("#main-block");
-        let $statsBlock = $("#stats-block");
-
-        const StatsTitle = "Статистика редиректов"
-        const CreationTitle = "Создание редиректа"
-
-        const AuthKey = "{{ .AuthKey}}";
-        const ViewerID = "{{ .ViewerID}}";
-        const APIID = "{{ .APIID}}";
-        const ErrorMessage = "Возникла ошибка, обновите страницу"
-        const apiURLParams = `?auth_key=${AuthKey}&viewer_id=${ViewerID}&api_id=${APIID}`
-
-        //render stats
-        $stats.click(function (e) {
-            e.preventDefault();
-
-            $mainBlock.hide();
-            $main.removeClass("active");
-
-            $statsBlock.show();
-            $stats.addClass("active");
-
-            document.title = StatsTitle
-        });
-
-        const $copyBind = $('#copy-button');
-        $copyBind.tooltip();
-
-        $copyBind.bind('click', function (e) {
-            e.preventDefault();
-
-            document.querySelector('#copy-input').select();
-            try {
-                if (document.execCommand('copy')) {
-                    $copyBind.trigger('copied', ['Токен скопирован']);
-                } else {
-                    $copyBind.trigger('copied', ['Скопируйте с Ctrl-c']);
-                }
-            } catch (err) {
-                $copyBind.trigger('copied', ['Скопируйте с Ctrl-c']);
-            }
-        });
-
-        $copyBind.bind('copied', function (event, message) {
-            $(this).attr('title', message)
-                .tooltip("_fixTitle")
-                .tooltip('show')
-                .attr("title", 'Скопируйте')
-                .tooltip("_fixTitle")
-        });
-
-        //render main page
-        $main.click(function (e) {
-            e.preventDefault();
-
-            $statsBlock.hide();
-            $stats.removeClass("active");
-
-            $mainBlock.show();
-            $main.addClass("active");
-
-            document.title = CreationTitle
-        });
-
-        $("#stats-form").submit(function (e) {
-            e.preventDefault();
-            let drawChart = function (dataPoints) {
-                let options = {
-                    theme: "light2",
-                    exportEnabled: true,
-                    animationEnabled: true,
-                    data: [{
-                        type: "pie",
-                        startAngle: 40,
-                        toolTipContent: "<b>{label}</b>: {y}",
-                        showInLegend: "true",
-                        legendText: "{label}",
-                        indexLabelFontSize: 16,
-                        indexLabel: "{label} - {y}",
-                        dataPoints: dataPoints
-                    }]
-                };
-
-                $("#chartContainer").show();
-                let chart = new CanvasJS.Chart("chartContainer", options);
-                chart.render()
-            };
-
-            let formMap = $(this).serializeArray();
-
-            $.ajax({
-                url: "/stats" + apiURLParams,
-                method: "post",
-                data: JSON.stringify(getFormDataInJson(formMap)),
-                success: function (resp) {
-                    if (resp.code === 0) {
-                        resp = convertToChartData(resp.body, "count", "y");
-                        resp = convertToChartData(resp, "city", "label");
-                        //TODO add table representation
-                        drawChart(resp);
-                    } else {
-                        alert('#error-stats-block', resp.text)
-                    }
-                },
-                fail: function () {
-                    alert('#error-stats-block', ErrorMessage)
-                }
-            });
-        });
-
-        $("#main-form").submit(function (e) {
-            e.preventDefault();
-            let data = getFormDataInJson($(this).serializeArray());
-
-            if (!data.external_url.includes("http://") && !data.external_url.includes("https://")) {
-                data.external_url = 'http://' + data.external_url;
-            }
-
-            $.ajax({
-                url: "/create" + apiURLParams,
-                method: "post",
-                contentType: 'application/json;charset=UTF-8',
-                data: JSON.stringify(data),
-                success: function (resp) {
-                    let r = JSON.parse(resp);
-                    if (r.code === 0) {
-                        $('#copy-input').attr('value', r.text);
-                        $("#copy-box").show();
-                    } else {
-                        alert('#error-main-block', r.text)
-                    }
-                },
-                fail: function () {
-                    alert('#error-main-block', ErrorMessage)
-                },
-            });
-        });
-    });
-</script>
-
-<div class="card text-center" style="border: none">
-    <div class="card-header">
-        <ul class="nav nav-tabs card-header-tabs">
-            <li class="nav-item">
-                <a class="nav-link active" id="main" href="#">Констуктор</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="stats" href="#">Статистика</a>
-            </li>
-        </ul>
-    </div>
-    <div class="card-body text-center" id="main-block" style="display: inline">
-        <h5 class="card-title">Куда будем перенаправлять?</h5>
-        <div class="d-flex justify-content-center">
-            <form class="form-inline" id="main-form">
-                <div class="form-group input-group mx-sm-3 mb-2">
-                    <div class="input-group-prepend">
-                        <div class="input-group-text">http(s)://</div>
-                    </div>
-                    <label for="external_url"></label><input type="text" class="form-control" id="external_url" name="external_url"
-                                                             placeholder="Твой url" required>
-                </div>
-                <button type="submit" id="submit_form" class="btn btn-primary mb-2">Создать</button>
-            </form>
-        </div>
-        <div class="row" style="display: none;" id="error-main-block">
-        </div>
-        <div class="d-flex justify-content-center" id="copy-box" style="display: none !important;">
-            <form class="form-inline" id="copy-form">
-                <div class="form-group input-group mx-sm-3 mb-2">
-                    <label for="copy-input"></label><input type="text" class="form-control" value="" placeholder="Ссылка" id="copy-input">
-                    <div class="input-group-append">
-                        <button type="submit" class="input-group-text btn btn-primary"
-                                id="copy-button">Копировать</button>
+<div class="card text-left" style="border: none">
+    <div class="card-body text-left" style="display: inline">
+        <h3 class="card-title mb-3">Блюда</h3>
+        <div class="row">
+            <div class="col-sm-6 mb-3" style="max-width: 18rem;">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Экомобиль</h5>
+                        <p class="card-text">Заберем вторсырье, только для тебя</p>
+                        <a href="#" class="btn btn-primary btn-success">Заказать</a>
                     </div>
                 </div>
-            </form>
+            </div>
+            <div class="col-sm-6 mb-3" style="max-width: 18rem;">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Экомобиль+</h5>
+                        <p class="card-text">Заберем вторсырье и объясним как собирать, поможем в сортировке</p>
+                        <a href="#" class="btn btn-primar btn-success">Заказать</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 mb-3" style="max-width: 18rem;">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Соседи</h5>
+                        <p class="card-text">Отправляй на переработку вместе с другими</p>
+                        <a href="#" class="btn btn-primary btn-success">Заказать</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="card-body text-center" id="stats-block" style="display: none">
-        <h5 class="card-title">Статистика посещений</h5>
-        <div class="d-flex justify-content-center">
-            <form class="form-inline" id="stats-form">
-                <div class="form-group input-group mx-sm-3 mb-2">
-                    <label>
-                        <input type="text" class="form-control" name="token" placeholder="Поиск по токену" required>
-                    </label>
-                    <div class="input-group-append">
-                        <button type="submit" class="input-group-text btn btn-primary">Поиск</button>
+    <div class="card-body text-left" style="display: inline">
+        <h3 class="card-title mb-3">Активные заказы</h3>
+        <div class="row">
+            <div class="col-sm-6 mb-3" style="max-width: 18rem;">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Соседи</h5>
+                        <p class="card-text">г. Москва, ул. Ленина, д. 5</p>
+                        <p class="card-text">Мест 5/15</p>
+                        <a href="#" class="btn btn-primary">Присоединиться</a>
                     </div>
                 </div>
-            </form>
-        </div>
-        <div id="chartContainer" style="height: 300px; width: 100%; display: none"></div>
-        <div id="fullTable"></div>
-        <div class="row" style="display: none;" id="error-stats-block">
+            </div>
+            <div class="col-sm-6 mb-3" style="max-width: 18rem;">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Соседи</h5>
+                        <p class="card-text">г. Москва, ул. Карла, д. 3</p>
+                        <p class="card-text">Мест 2/15</p>
+                        <a href="#" class="btn btn-primary">Присоединиться</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 mb-3" style="max-width: 18rem;">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Соседи</h5>
+                        <p class="card-text">г. Москва, ул. Янгеля, д. 25</p>
+                        <p class="card-text">Мест 3/5</p>
+                        <a href="#" class="btn btn-primary">Присоединиться</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
