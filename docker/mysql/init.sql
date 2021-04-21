@@ -5,9 +5,9 @@ USE Recycle;
 CREATE TABLE IF NOT EXISTS Orders
 (
     id        bigint unsigned primary key not null,
-    eventAt   DATETIME                    not null,
     address   text                        not null,
-    size      integer                     not null, # maximum place count
+    maxSize      integer                     not null, # maximum place count
+    eventAt   DATETIME                    not null,
     createdAt DATETIME                    not null,
     updatedAt DATETIME                    not null
 );
