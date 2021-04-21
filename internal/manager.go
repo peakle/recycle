@@ -7,7 +7,6 @@ import (
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
-	sg "github.com/wakeapp/go-sql-generator"
 )
 
 type config struct {
@@ -45,73 +44,6 @@ func (m *SQLManager) Close() {
 
 func (m *SQLManager) GetConnection() *sql.DB {
 	return m.conn
-}
-
-func (m *SQLManager) Insert(dataInsert *sg.InsertData) (int, error) {
-	if err := m.conn.Ping(); err != nil {
-		return 0, err
-	}
-
-	if len(dataInsert.ValuesList) == 0 {
-		return 0, nil
-	}
-
-	sqlGenerator := sg.MysqlSqlGenerator{}
-
-	query, args, err := sqlGenerator.GetInsertSql(*dataInsert)
-	if err != nil {
-		return 0, err
-	}
-
-	var stmt *sql.Stmt
-	stmt, err = m.conn.Prepare(query)
-	if err != nil {
-		return 0, err
-	}
-	defer func() {
-		_ = stmt.Close()
-	}()
-
-	var result sql.Result
-	result, err = stmt.Exec(args...)
-	if err != nil {
-		return 0, err
-	}
-	ra, _ := result.RowsAffected()
-
-	return int(ra), nil
-}
-
-func (m *SQLManager) Upsert(dataUpsert *sg.UpsertData) (int, error) {
-	if len(dataUpsert.ValuesList) == 0 {
-		return 0, nil
-	}
-
-	sqlGenerator := sg.MysqlSqlGenerator{}
-
-	query, args, err := sqlGenerator.GetUpsertSql(*dataUpsert)
-	if err != nil {
-		return 0, fmt.Errorf("on upsert: on Generate: %s", err)
-	}
-
-	var stmt *sql.Stmt
-	stmt, err = m.conn.Prepare(query)
-	if err != nil {
-		return 0, fmt.Errorf("on upsert: on Prepare: %s, query: %s", err, query)
-	}
-	defer func() {
-		_ = stmt.Close()
-	}()
-
-	var result sql.Result
-	result, err = stmt.Exec(args...)
-	if err != nil {
-		return 0, fmt.Errorf("on upsert: on exec: %s", err)
-	}
-
-	ra, _ := result.RowsAffected()
-
-	return int(ra), nil
 }
 
 func (m *SQLManager) open(c *config) {

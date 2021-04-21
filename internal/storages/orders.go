@@ -4,7 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/peakle/recycle/internal"
+	idgen "github.com/wakeapp/go-id-generator"
 )
 
 func GetList(ctx context.Context, m *internal.SQLManager) ([]*Order, error) {
@@ -110,4 +113,76 @@ func Subscribe(ctx context.Context, m *internal.SQLManager, orderId string) (boo
 	}
 
 	return true, nil
+}
+
+func Create(ctx context.Context, m *internal.SQLManager, userId, address, maxSize, eventAt string) (string, error) {
+	var err error
+	var stmt *sql.Stmt
+	var tx *sql.Tx
+	var res sql.Result
+	var count int64
+
+	var conn = m.GetConnection()
+	tx, err = conn.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return "", fmt.Errorf("on Create: on start transaction: %s", err)
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		tx.Commit()
+	}()
+
+	stmt, err = tx.PrepareContext(ctx, "INSERT INTO Orders (id, address, maxSize, eventAt, createdAt, updatedAt) VALUES(?,?,?,?,?,?)")
+	if err != nil {
+		return "", fmt.Errorf("on Create: on Prepare: %s", err)
+	}
+	defer func(s *sql.Stmt) {
+		_ = s.Close()
+	}(stmt)
+
+	id := idgen.Id()
+
+	var t = time.Now().Format("2006-01-02 15:04:05")
+	res, err = stmt.ExecContext(ctx, id, address, maxSize, eventAt, t, t)
+	if err != nil {
+		return "", fmt.Errorf("on Create: on Exec: %s", err)
+	}
+
+	count, err = res.RowsAffected()
+	if err != nil {
+		return "", fmt.Errorf("on Create: on RowsAffected: %s", err)
+	}
+
+	if count == 0 {
+		return "", nil
+	}
+
+	stmt, err = tx.PrepareContext(ctx, "INSERT INTO OrdersUsers (user_id, order_id) VALUES(?,?)")
+	if err != nil {
+		return "", fmt.Errorf("on Create: on Prepare: %s", err)
+	}
+	defer func(s *sql.Stmt) {
+		_ = s.Close()
+	}(stmt)
+
+	res, err = stmt.ExecContext(ctx)
+	if err != nil {
+		return "", fmt.Errorf("on Create: on Exec: %s", err)
+	}
+
+	count, err = res.RowsAffected()
+	if err != nil {
+		return "", fmt.Errorf("on Create: on RowsAffected: %s", err)
+	}
+
+	if count == 0 {
+		return "", nil
+	}
+
+	return id, nil
 }
