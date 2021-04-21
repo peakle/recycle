@@ -16,9 +16,20 @@ type Handler struct {
 }
 
 func (h *Handler) Subscribe(ctx *fasthttp.RequestCtx) {
+	defer ctx.Response.Header.Set("Content-Type", "application/json")
+
+	var success, err = storages.Subscribe(ctx, h.Manager, string(ctx.QueryArgs().Peek("order_id")))
+	if err != nil {
+		log.Printf("on Subscribe: %s", err)
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError) /// TODO
+		return
+	}
+
+	_, _ = fmt.Fprintf(ctx, "{\"success\": \"%v\"}", success)
 }
 
 func (h *Handler) Create(ctx *fasthttp.RequestCtx) {
+
 }
 
 func (h *Handler) List(ctx *fasthttp.RequestCtx) {
@@ -44,7 +55,7 @@ func (h *Handler) List(ctx *fasthttp.RequestCtx) {
 func (h *Handler) Info(ctx *fasthttp.RequestCtx) {
 	defer ctx.Response.Header.Set("Content-Type", "application/json")
 
-	var orders, err = storages.Info(ctx, h.Manager)
+	var orders, err = storages.Info(ctx, h.Manager, string(ctx.QueryArgs().Peek("order_id")))
 	if err != nil {
 		log.Printf("on Info: %s", err)
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError) /// TODO
