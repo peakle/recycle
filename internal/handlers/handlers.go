@@ -31,10 +31,10 @@ func (h *Handler) Subscribe(ctx *fasthttp.RequestCtx) {
 func (h *Handler) Create(ctx *fasthttp.RequestCtx) {
 	defer ctx.Response.Header.Set("Content-Type", "application/json")
 
-	var userId = string(ctx.QueryArgs().Peek("user_id")) // TODO validation
-	var address = string(ctx.QueryArgs().Peek("address"))
-	var maxSize = string(ctx.QueryArgs().Peek("max_size"))
-	var eventAt = string(ctx.QueryArgs().Peek("event_at"))
+	var userId = string(ctx.PostArgs().Peek("user_id")) // TODO validation
+	var address = string(ctx.PostArgs().Peek("address"))
+	var maxSize = string(ctx.PostArgs().Peek("max_size"))
+	var eventAt = string(ctx.PostArgs().Peek("event_at"))
 
 	var orderId, err = storages.Create(ctx, h.Manager, userId, address, maxSize, eventAt)
 	if err != nil {
