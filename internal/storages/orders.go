@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/peakle/recycle/internal"
@@ -90,15 +91,15 @@ func Info(ctx context.Context, m *internal.SQLManager, orderId string) (*Order, 
 	return &order, nil
 }
 
-func Subscribe(ctx context.Context, m *internal.SQLManager, orderId string) (bool, error) {
+func Subscribe(ctx context.Context, m *internal.SQLManager, orderId, userId string) (bool, error) {
 	var conn = m.GetConnection()
-	var stmt, err = conn.PrepareContext(ctx, "")
+	var stmt, err = conn.PrepareContext(ctx, "INSERT INTO OrdersUsers (order_id, user_id) VALUES(?,?)")
 	if err != nil {
 		return false, fmt.Errorf("on Subscribe: on Prepare: %s", err)
 	}
 	defer stmt.Close()
 
-	res, err := stmt.ExecContext(ctx)
+	res, err := stmt.ExecContext(ctx, orderId, userId)
 	if err != nil {
 		return false, fmt.Errorf("on Subscribe: on Exec: %s", err)
 	}
@@ -109,7 +110,7 @@ func Subscribe(ctx context.Context, m *internal.SQLManager, orderId string) (boo
 	}
 
 	if count == 0 {
-		return false, nil
+		return false, fmt.Errorf("on Subscribe: zero rows affected")
 	}
 
 	return true, nil
@@ -145,7 +146,7 @@ func Create(ctx context.Context, m *internal.SQLManager, userId, address, maxSiz
 		_ = s.Close()
 	}(stmt)
 
-	id := idgen.Id()
+	id := strings.TrimLeft(idgen.Id(), "0")
 
 	var t = time.Now().Format("2006-01-02 15:04:05")
 	res, err = stmt.ExecContext(ctx, id, address, maxSize, eventAt, t, t)
@@ -159,7 +160,7 @@ func Create(ctx context.Context, m *internal.SQLManager, userId, address, maxSiz
 	}
 
 	if count == 0 {
-		return "", nil
+		return "", fmt.Errorf("zero rows affected")
 	}
 
 	stmt, err = tx.PrepareContext(ctx, "INSERT INTO OrdersUsers (user_id, order_id) VALUES(?,?)")
@@ -170,7 +171,7 @@ func Create(ctx context.Context, m *internal.SQLManager, userId, address, maxSiz
 		_ = s.Close()
 	}(stmt)
 
-	res, err = stmt.ExecContext(ctx)
+	res, err = stmt.ExecContext(ctx, userId, id)
 	if err != nil {
 		return "", fmt.Errorf("on Create: on Exec: %s", err)
 	}
@@ -181,7 +182,7 @@ func Create(ctx context.Context, m *internal.SQLManager, userId, address, maxSiz
 	}
 
 	if count == 0 {
-		return "", nil
+		return "", fmt.Errorf("zero rows affected")
 	}
 
 	return id, nil
