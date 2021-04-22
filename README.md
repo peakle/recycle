@@ -1,4 +1,4 @@
-[POST] `/v1/order/create`
+[POST] `/v1/order/create` - create new event
 
 Required Headers: <br/>
 Content-Type: application/x-www-form-urlencoded
