@@ -14,7 +14,7 @@ Request example:
 }
 ```
 
-[POST]  `/v1/order/subscribe` - subscribe user to event Required Headers:
+[POST]  `/v1/order/subscribe` - subscribe user to event
 
 Required Headers:
 Content-Type: application/x-www-form-urlencoded
