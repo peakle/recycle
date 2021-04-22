@@ -23,7 +23,8 @@ Request example:
 
 ```
 {
-    UserId  int     "user_id"
+    UserId      int     "user_id"
+    OrderId     int     "order_id"
 }
 ```
 

@@ -56,10 +56,11 @@ func Info(ctx context.Context, m *internal.SQLManager, orderId string) (*Order, 
 			address,
 			maxSize,
 			eventAt,
-			count(uo.user_id)
+			count(ou.user_id)
 		FROM Orders o
 		JOIN OrdersUsers ou on o.id = ou.order_id
-		WHERE id = ?
+		WHERE o.id = ?
+		GROUP BY id, address, maxSize, eventAt 
 		LIMIT 1
 	`)
 	if err != nil {
@@ -93,24 +94,15 @@ func Info(ctx context.Context, m *internal.SQLManager, orderId string) (*Order, 
 
 func Subscribe(ctx context.Context, m *internal.SQLManager, orderId, userId string) (bool, error) {
 	var conn = m.GetConnection()
-	var stmt, err = conn.PrepareContext(ctx, "INSERT INTO OrdersUsers (order_id, user_id) VALUES(?,?)")
+	var stmt, err = conn.PrepareContext(ctx, "INSERT IGNORE INTO OrdersUsers (order_id, user_id) VALUES(?,?)")
 	if err != nil {
 		return false, fmt.Errorf("on Subscribe: on Prepare: %s", err)
 	}
 	defer stmt.Close()
 
-	res, err := stmt.ExecContext(ctx, orderId, userId)
+	_, err = stmt.ExecContext(ctx, orderId, userId)
 	if err != nil {
 		return false, fmt.Errorf("on Subscribe: on Exec: %s", err)
-	}
-
-	count, err := res.RowsAffected()
-	if err != nil {
-		return false, fmt.Errorf("on Subscribe: on RowsAffected: %s", err)
-	}
-
-	if count == 0 {
-		return false, fmt.Errorf("on Subscribe: zero rows affected")
 	}
 
 	return true, nil
