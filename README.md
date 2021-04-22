@@ -16,7 +16,7 @@ Request example:
 
 [POST]  `/v1/order/subscribe` - subscribe user to event
 
-Required Headers:
+Required Headers: <br/>
 Content-Type: application/x-www-form-urlencoded
 
 Request example:
