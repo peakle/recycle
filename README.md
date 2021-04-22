@@ -31,3 +31,8 @@ Request example:
 [GET] `/v1/order/list` - return list of active events
 
 [GET] `/v1/order/info` - return detailed info about event
+```
+{
+    OrderId     int     "order_id"
+}
+```
