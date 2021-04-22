@@ -30,7 +30,7 @@ func StartServer(ctx context.Context) error {
 		} else if strings.HasPrefix(path, "/v1/order/list") && string(ctx.Request.Header.Method()) == fasthttp.MethodGet {
 			h.List(ctx)
 		} else if strings.HasPrefix(path, "/v1/order/info") && string(ctx.Request.Header.Method()) == fasthttp.MethodGet {
-			h.List(ctx)
+			h.Info(ctx)
 		} else if strings.HasPrefix(path, "/debug/pprof") {
 			pprofhandler.PprofHandler(ctx)
 		} else {
