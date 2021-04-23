@@ -1,4 +1,4 @@
-PROJECT = Gamechart
+PROJECT = recycle
 VERSION = $(if $(TAG),$(TAG),$(if $(BRANCH_NAME),$(BRANCH_NAME),$(shell git symbolic-ref -q --short HEAD || git describe --tags --exact-match)))
 DIR = $(shell basename $(CURDIR))
 
